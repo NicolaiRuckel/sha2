@@ -14,7 +14,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = '^3.11'
+python = '^3.10'
 
 [tool.poetry.group.dev.dependencies]
 black = { version = '*', allow-prereleases = true }
