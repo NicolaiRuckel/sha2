@@ -71,6 +71,45 @@ K = [
 ]
 
 
+class MessageSchedule:
+    def __init__(self, message_chunk: bytearray):
+        """Initialize MessageSchedule from message."""
+        self.message_schedule = []
+        for i in range(0, 16):
+            self.message_schedule.append(
+                bytes(message_chunk[i * 4 : (i * 4) + 4])
+            )
+        for i in range(16, 64):
+            sigma_0 = compute_sigma_0(self.get_chunk(i - 15))
+            sigma_1 = compute_sigma_1(self.get_chunk(i - 2))
+            self.message_schedule.append(
+                (
+                    (
+                        self.get_chunk(i - 16)
+                        + sigma_0
+                        + self.get_chunk(i - 7)
+                        + sigma_1
+                    )
+                    % 2**32
+                ).to_bytes(4, "big")
+            )
+
+    def get_chunk(self, index: int) -> int:
+        """Get chunk at index from the message schedule."""
+        return int.from_bytes(self.message_schedule[index], "big")
+
+    def __getitem__(self, key: int) -> int:
+        return self.get_chunk(key)
+
+    def compute_sigma_0(self, number: int) -> int:
+        """Return value for sigma_0."""
+        return ror(number, 7) ^ ror(number, 18) ^ (number >> 3)
+
+    def compute_sigma_1(self, number: int) -> int:
+        """Return value for sigma_1."""
+        return ror(number, 17) ^ ror(number, 19) ^ (number >> 10)
+
+
 def sha256(message: bytearray) -> str:
     """Return SHA-256 hash of message."""
     padding(message)
@@ -87,23 +126,7 @@ def sha256(message: bytearray) -> str:
     h_7 = 0x5BE0CD19
 
     for chunk in message_chunks:
-        message_schedule = []
-        for i in range(0, 16):
-            message_schedule.append(bytes(chunk[i * 4 : (i * 4) + 4]))
-        for i in range(16, 64):
-            sigma_0 = compute_sigma_0(get_chunk(message_schedule, i - 15))
-            sigma_1 = compute_sigma_1(get_chunk(message_schedule, i - 2))
-            message_schedule.append(
-                (
-                    (
-                        get_chunk(message_schedule, i - 16)
-                        + sigma_0
-                        + get_chunk(message_schedule, i - 7)
-                        + sigma_1
-                    )
-                    % 2**32
-                ).to_bytes(4, "big")
-            )
+        message_schedule = MessageSchedule(chunk)
 
         a = h_0
         b = h_1
@@ -117,21 +140,20 @@ def sha256(message: bytearray) -> str:
         for i in range(64):
             s_1 = ror(e, 6) ^ ror(e, 11) ^ ror(e, 25)
             ch = (e & f) ^ (~e & g)
-            temp1 = (
-                h + s_1 + ch + K[i] + get_chunk(message_schedule, i)
-            ) % 2**32
+            t_1 = (h + s_1 + ch + K[i] + message_schedule[i]) % 2**32
+
             s_0 = ror(a, 2) ^ ror(a, 13) ^ ror(a, 22)
             maj = (a & b) ^ (a & c) ^ (b & c)
-            temp2 = (s_0 + maj) % 2**32
+            t_2 = (s_0 + maj) % 2**32
 
             h = g
             g = f
             f = e
-            e = (d + temp1) % 2**32
+            e = (d + t_1) % 2**32
             d = c
             c = b
             b = a
-            a = (temp1 + temp2) % 2**32
+            a = (t_1 + t_2) % 2**32
 
         h_0 = (h_0 + a) % 2**32
         h_1 = (h_1 + b) % 2**32
@@ -142,26 +164,26 @@ def sha256(message: bytearray) -> str:
         h_6 = (h_6 + g) % 2**32
         h_7 = (h_7 + h) % 2**32
 
-        return (
-            (h_0).to_bytes(4, "big")
-            + (h_1).to_bytes(4, "big")
-            + (h_2).to_bytes(4, "big")
-            + (h_3).to_bytes(4, "big")
-            + (h_4).to_bytes(4, "big")
-            + (h_5).to_bytes(4, "big")
-            + (h_6).to_bytes(4, "big")
-            + (h_7).to_bytes(4, "big")
-        ).hex()
-        # return [
-        #     hex(h_0),
-        #     hex(h_1),
-        #     hex(h_2),
-        #     hex(h_3),
-        #     hex(h_4),
-        #     hex(h_5),
-        #     hex(h_6),
-        #     hex(h_7),
-        # ]
+    return (
+        (h_0).to_bytes(4, "big")
+        + (h_1).to_bytes(4, "big")
+        + (h_2).to_bytes(4, "big")
+        + (h_3).to_bytes(4, "big")
+        + (h_4).to_bytes(4, "big")
+        + (h_5).to_bytes(4, "big")
+        + (h_6).to_bytes(4, "big")
+        + (h_7).to_bytes(4, "big")
+    ).hex()
+    # return [
+    #     hex(h_0),
+    #     hex(h_1),
+    #     hex(h_2),
+    #     hex(h_3),
+    #     hex(h_4),
+    #     hex(h_5),
+    #     hex(h_6),
+    #     hex(h_7),
+    # ]
 
 
 def padding(message: bytearray):
@@ -199,33 +221,6 @@ def compute_sigma_0(number: int) -> int:
 def compute_sigma_1(number: int) -> int:
     """Return value for sigma_1."""
     return ror(number, 17) ^ ror(number, 19) ^ (number >> 10)
-
-
-def split_in_chunks(seq, size):
-    """Split the sequence in chunks of the given size."""
-    return (seq[pos : pos + size] for pos in range(0, len(seq), size))
-
-
-def as_64(x):
-    """Return x in 64 bit representation."""
-    return format(x, "b").zfill(64)
-
-
-def create_message_schedule_array(chunk):
-    """Initialize the message schedule array."""
-    w = [0] * 64
-    chunk_words = []
-
-    for element in chunk:
-        chunk_words.append((element & 0xFFFFFFFF).to_bytes(4, "big"))
-    for i in range(0, 16):
-        w[i] = chunk_words[i]
-
-    for i in range(16, 64):
-        s_0 = ror(w[i - 15], 7) ^ ror(w[i - 15], 18) ^ (w[i - 15] >> 3)
-        s_1 = ror(w[i - 2], 17) ^ ror(w[i - 2], 19) ^ (w[i - 2] >> 10)
-        w[i] = w[i - 16] + s_0 + w[i - 7] + s_1
-    return w
 
 
 if __name__ == "__main__":
