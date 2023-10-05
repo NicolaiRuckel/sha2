@@ -71,9 +71,8 @@ K = [
 ]
 
 
-def sha256(message: bytearray) -> bytearray:
+def sha256(message: bytearray) -> str:
     """Return SHA-256 hash of message."""
-
     padding(message)
 
     message_chunks = message_to_chunks(message)
@@ -118,7 +117,9 @@ def sha256(message: bytearray) -> bytearray:
         for i in range(64):
             s_1 = ror(e, 6) ^ ror(e, 11) ^ ror(e, 25)
             ch = (e & f) ^ (~e & g)
-            temp1 = (h + s_1 + ch + K[i] + get_chunk(message_schedule, i)) % 2**32
+            temp1 = (
+                h + s_1 + ch + K[i] + get_chunk(message_schedule, i)
+            ) % 2**32
             s_0 = ror(a, 2) ^ ror(a, 13) ^ ror(a, 22)
             maj = (a & b) ^ (a & c) ^ (b & c)
             temp2 = (s_0 + maj) % 2**32
@@ -163,7 +164,7 @@ def sha256(message: bytearray) -> bytearray:
         # ]
 
 
-def padding(message: bytearray) -> bytearray:
+def padding(message: bytearray):
     """Apply padding to the message."""
     message_length = len(message) * 8
     message.append(0x80)
@@ -172,7 +173,7 @@ def padding(message: bytearray) -> bytearray:
     message += message_length.to_bytes(8, "big")
 
 
-def message_to_chunks(message: bytearray) -> list[bytes]:
+def message_to_chunks(message: bytearray) -> list[bytearray]:
     """Break the message into 512-bit chunks."""
     message_chunks = []
     for i in range(0, len(message), 64):
@@ -196,7 +197,7 @@ def compute_sigma_0(number: int) -> int:
 
 
 def compute_sigma_1(number: int) -> int:
-    """Return value for sigma_1"""
+    """Return value for sigma_1."""
     return ror(number, 17) ^ ror(number, 19) ^ (number >> 10)
 
 
