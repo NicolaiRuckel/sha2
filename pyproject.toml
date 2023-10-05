@@ -1,0 +1,52 @@
+[build-system]
+requires = ['poetry>=0.12']
+build-backend = 'poetry.masonry.api'
+
+[tool.poetry]
+name = 'sha2'
+version = '0.1.0'
+description = 'SHA2 implementations'
+authors = ['Nicolai Ruckel <nicolai@ruckel.de>']
+keywords=['hash']
+license='GPL-3.0+'
+packages = [
+    { include = 'sha2', from = 'src' },
+]
+
+[tool.poetry.dependencies]
+python = '^3.11'
+
+[tool.poetry.group.dev.dependencies]
+black = { version = '*', allow-prereleases = true }
+flake8 = "^6.1.0"
+pylint = "^3.0.1"
+pytest = "^7.4.2"
+pytest-cov = "^4.1.0"
+pydocstyle = "^6.3.0"
+sphinx = "^7.2.6"
+sphinxcontrib-spelling = "^8.0.0"
+toml = "^0.10.2"
+
+[tool.pylint.basic]
+good-names = "i,id"
+
+[tool.pylint.master]
+disable=["C0114","C0115","C0116","E0401","R0801","R0902","R0903","R0912","R0913","R0914","R0915","R1702","W0511"]
+
+[tool.black]
+line-length = 79
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
