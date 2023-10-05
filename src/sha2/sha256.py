@@ -80,8 +80,8 @@ class MessageSchedule:
                 bytes(message_chunk[i * 4 : (i * 4) + 4])
             )
         for i in range(16, 64):
-            sigma_0 = compute_sigma_0(self.get_chunk(i - 15))
-            sigma_1 = compute_sigma_1(self.get_chunk(i - 2))
+            sigma_0 = self.compute_sigma_0(self.get_chunk(i - 15))
+            sigma_1 = self.compute_sigma_1(self.get_chunk(i - 2))
             self.message_schedule.append(
                 (
                     (
@@ -211,16 +211,6 @@ def ror(number: int, shift: int, size: int = 32):
 def get_chunk(message_schedule: list[bytes], index: int) -> int:
     """Get chunk at index from the message schedule."""
     return int.from_bytes(message_schedule[index], "big")
-
-
-def compute_sigma_0(number: int) -> int:
-    """Return value for sigma_0."""
-    return ror(number, 7) ^ ror(number, 18) ^ (number >> 3)
-
-
-def compute_sigma_1(number: int) -> int:
-    """Return value for sigma_1."""
-    return ror(number, 17) ^ ror(number, 19) ^ (number >> 10)
 
 
 if __name__ == "__main__":
