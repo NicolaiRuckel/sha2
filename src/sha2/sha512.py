@@ -134,7 +134,9 @@ def sha512(message: bytearray) -> str:
         for i in range(80):
             s_1 = ror(e, 14) ^ ror(e, 18) ^ ror(e, 41)
             ch = (e & f) ^ (~e & g)
-            temp1 = (h + s_1 + ch + K[i] + get_chunk(message_schedule, i)) % 2**64
+            temp1 = (
+                h + s_1 + ch + K[i] + get_chunk(message_schedule, i)
+            ) % 2**64
 
             s_0 = ror(a, 28) ^ ror(a, 34) ^ ror(a, 39)
             maj = (a & b) ^ (a & c) ^ (b & c)
