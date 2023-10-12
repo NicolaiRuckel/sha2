@@ -3,6 +3,8 @@
 
 import sys
 
+from sha2 import MessageSchedule
+
 K = [
     0x428A2F98,
     0x71374491,
@@ -71,43 +73,43 @@ K = [
 ]
 
 
-class MessageSchedule:
-    def __init__(self, message_chunk: bytearray):
-        """Initialize MessageSchedule from message."""
-        self.message_schedule = []
-        for i in range(0, 16):
-            self.message_schedule.append(
-                bytes(message_chunk[i * 4 : (i * 4) + 4])
-            )
-        for i in range(16, 64):
-            sigma_0 = self.compute_sigma_0(self.get_word(i - 15))
-            sigma_1 = self.compute_sigma_1(self.get_word(i - 2))
-            self.message_schedule.append(
-                (
-                    (
-                        self.get_word(i - 16)
-                        + sigma_0
-                        + self.get_word(i - 7)
-                        + sigma_1
-                    )
-                    % 2**32
-                ).to_bytes(4, "big")
-            )
+# class MessageSchedule:
+#     def __init__(self, message_chunk: bytearray):
+#         """Initialize MessageSchedule from message."""
+#         self.message_schedule = []
+#         for i in range(0, 16):
+#             self.message_schedule.append(
+#                 bytes(message_chunk[i * 4 : (i * 4) + 4])
+#             )
+#         for i in range(16, 64):
+#             sigma_0 = self.compute_sigma_0(self.get_word(i - 15))
+#             sigma_1 = self.compute_sigma_1(self.get_word(i - 2))
+#             self.message_schedule.append(
+#                 (
+#                     (
+#                         self.get_word(i - 16)
+#                         + sigma_0
+#                         + self.get_word(i - 7)
+#                         + sigma_1
+#                     )
+#                     % 2**32
+#                 ).to_bytes(4, "big")
+#             )
 
-    def get_word(self, index: int) -> int:
-        """Get chunk at index from the message schedule."""
-        return int.from_bytes(self.message_schedule[index], "big")
+#     def get_word(self, index: int) -> int:
+#         """Get chunk at index from the message schedule."""
+#         return int.from_bytes(self.message_schedule[index], "big")
 
-    def __getitem__(self, key: int) -> int:
-        return self.get_word(key)
+#     def __getitem__(self, key: int) -> int:
+#         return self.get_word(key)
 
-    def compute_sigma_0(self, number: int) -> int:
-        """Return value for sigma_0."""
-        return ror(number, 7) ^ ror(number, 18) ^ (number >> 3)
+#     def compute_sigma_0(self, number: int) -> int:
+#         """Return value for sigma_0."""
+#         return ror(number, 7) ^ ror(number, 18) ^ (number >> 3)
 
-    def compute_sigma_1(self, number: int) -> int:
-        """Return value for sigma_1."""
-        return ror(number, 17) ^ ror(number, 19) ^ (number >> 10)
+#     def compute_sigma_1(self, number: int) -> int:
+#         """Return value for sigma_1."""
+#         return ror(number, 17) ^ ror(number, 19) ^ (number >> 10)
 
 
 def sha256(message: bytearray) -> str:
@@ -126,7 +128,18 @@ def sha256(message: bytearray) -> str:
     h_7 = 0x5BE0CD19
 
     for chunk in message_chunks:
-        message_schedule = MessageSchedule(chunk)
+        message_schedule = MessageSchedule(4)
+        for i in range(0, 16):
+            message_schedule.append(chunk[i * 4 : (i * 4) + 4])
+        for i in range(16, 64):
+            sigma_0 = compute_sigma_0(message_schedule[i - 15])
+            sigma_1 = compute_sigma_1(message_schedule[i - 2])
+            message_schedule.append(
+                message_schedule[i - 16]
+                + sigma_0
+                + message_schedule[i - 7]
+                + sigma_1
+            )
 
         a = h_0
         b = h_1
@@ -206,6 +219,16 @@ def message_to_chunks(message: bytearray) -> list[bytearray]:
 def ror(number: int, shift: int, size: int = 32):
     """Rotate a number by shift to the right."""
     return (number >> shift) | (number << size - shift)
+
+
+def compute_sigma_0(number: int) -> int:
+    """Return value for sigma_0."""
+    return ror(number, 7) ^ ror(number, 18) ^ (number >> 3)
+
+
+def compute_sigma_1(number: int) -> int:
+    """Return value for sigma_1."""
+    return ror(number, 17) ^ ror(number, 19) ^ (number >> 10)
 
 
 if __name__ == "__main__":
