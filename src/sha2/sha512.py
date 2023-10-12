@@ -107,14 +107,14 @@ def sha512(message: bytearray) -> str:
         for i in range(0, 16):
             message_schedule.append(bytes(chunk[i * 8 : (i * 8) + 8]))
         for i in range(16, 80):
-            sigma_0 = compute_sigma_0(get_chunk(message_schedule, i - 15))
-            sigma_1 = compute_sigma_1(get_chunk(message_schedule, i - 2))
+            sigma_0 = compute_sigma_0(get_word(message_schedule, i - 15))
+            sigma_1 = compute_sigma_1(get_word(message_schedule, i - 2))
             message_schedule.append(
                 (
                     (
-                        get_chunk(message_schedule, i - 16)
+                        get_word(message_schedule, i - 16)
                         + sigma_0
-                        + get_chunk(message_schedule, i - 7)
+                        + get_word(message_schedule, i - 7)
                         + sigma_1
                     )
                     % 2**64
@@ -135,7 +135,7 @@ def sha512(message: bytearray) -> str:
             s_1 = ror(e, 14) ^ ror(e, 18) ^ ror(e, 41)
             ch = (e & f) ^ (~e & g)
             temp1 = (
-                h + s_1 + ch + K[i] + get_chunk(message_schedule, i)
+                h + s_1 + ch + K[i] + get_word(message_schedule, i)
             ) % 2**64
 
             s_0 = ror(a, 28) ^ ror(a, 34) ^ ror(a, 39)
@@ -204,8 +204,8 @@ def ror(number: int, shift: int, size: int = 64):
     return (number >> shift) | (number << size - shift)
 
 
-def get_chunk(message_schedule: list[bytes], index: int) -> int:
-    """Get chunk at index from the message schedule."""
+def get_word(message_schedule: list[bytes], index: int) -> int:
+    """Get word at index from the message schedule."""
     return int.from_bytes(message_schedule[index], "big")
 
 
@@ -220,6 +220,5 @@ def compute_sigma_1(number: int) -> int:
 
 
 if __name__ == "__main__":
-    # msg_bytearray = bytearray("", "ascii")
     msg_bytearray = bytearray(sys.argv[1], "ascii")
     print(sha512(msg_bytearray))
